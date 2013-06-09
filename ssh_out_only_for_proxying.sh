@@ -15,11 +15,21 @@ HOSTIF="eth1"						# interface
 HOSTIP="192.168.10.10"				# ssh listening IP
 HOSTPORT="22"						# ssh listening port
 
-### iptables
+### Change DNS settings
+CHANGEDNS="Y"						# overwrite resov.conf
+DNS="127.0.0.1"						# nameserver
+
+### bins
+IFCONFIG=/sbin/ifconfig
 IPTABLES=/sbin/iptables
 IP6TABLES=/sbin/ip6tables
 
 ##########################################################################################
+
+### Change resolv.conf
+if [ $CHANGEDNS  = "Y" ]; then
+		echo "nameserver $DNS" > /etc/resolv.conf
+fi
 
 ### flush existing rules and set chain policy setting to DROP
 $IPTABLES -F
@@ -77,15 +87,17 @@ $IPTABLES -A OUTPUT -o lo -j ACCEPT
 $IPTABLES -A INPUT -i $INTERFACE -p tcp -s $PROXY_SERVER_IP --sport $PROXY_SERVER_PORT -m state --state ESTABLISHED -j ACCEPT
 
 # drop all broadcast traffic without logging
-if [ "$INTERFACE" = "$HOSTIF" ]; then
-	BROADCAST=`ifconfig $INTERFACE | grep Bcast | cut -d ":" -f3 | sed 's/ .*//'`
-	$IPTABLES -A INPUT -d $BROADCAST -j DROP	
-else
-	BROADCAST1=`ifconfig $INTERFACE | grep Bcast | cut -d ":" -f3 | sed 's/ .*//'`
-        $IPTABLES -A INPUT -d $BROADCAST1 -j DROP
-	BROADCAST2=`ifconfig $HOSTIF | grep Bcast | cut -d ":" -f3 | sed 's/ .*//'`
-	$IPTABLES -A INPUT -d $BROADCAST2 -j DROP
-fi
+INTERFACES=`$IFCONFIG | cut -c-10 | tr -d ' ' | grep -v lo | sed 's/\n/ /g' |  tr -s '\n'`
+for theinterface in $INTERFACES
+do
+        BROADCAST=`$IFCONFIG $theinterface | grep Bcast | cut -d ":" -f3 | sed 's/ .*//'`
+        $IPTABLES -A INPUT -d $BROADCAST -j DROP
+done
+
+# drop broadcast + multicast traffic (if we have xt_pkttype support in kernel)
+$IPTABLES -A INPUT -m pkttype --pkt-type broadcast -j DROP
+$IPTABLES -A INPUT -m pkttype --pkt-type multicast -j DROP
+
 # log + drop incoming scans
 $IPTABLES -A INPUT -j LOG --log-prefix "INCOMING! " --log-ip-options --log-tcp-options -m limit --limit 5/s --limit-burst 20
 $IPTABLES -A INPUT -j DROP
