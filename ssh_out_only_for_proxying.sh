@@ -11,7 +11,7 @@ PROXYPORT="8080"					# local socks proxy port
 
 ### Do you SSH into this host?
 HOSTSSH="Y"							# Y/N to run these rules
-HOSTIF="eth1"						# interface
+HOSTIF="eth1"						# listening interface
 HOSTIP="192.168.10.10"				# ssh listening IP
 HOSTPORT="22"						# ssh listening port
 
