@@ -1,7 +1,8 @@
 #!/bin/sh
 
 ### Firewall off this host to stop any leaks when using a proxy.
-### Safely proxy all traffic with SSH's socks4 proxy: ssh -D 8080 user@server-ip
+### Safely proxy all traffic with SSH's socks4 proxy: 
+### ssh -D8080 -f -C -q -B user@server-ip -p 2222 -i /media/crypt/sshkey
 
 PROXY_SERVER_IP="server-ip"			# IP to restrict traffic to/from
 PROXY_SERVER_PORT="2222"			# only connect to this port
@@ -16,8 +17,9 @@ HOSTIP="192.168.10.10"				# ssh listening IP
 HOSTPORT="22"						# ssh listening port
 
 ### Change DNS settings
-CHANGEDNS="Y"						# overwrite resov.conf
+CHANGEDNS="Y"						# change the resolv.conf to DNS below
 DNS="127.0.0.1"						# nameserver
+DNSLOCK="N"							# If Y set resolv.conf as immutable
 
 ### bins
 IFCONFIG=/sbin/ifconfig
@@ -29,6 +31,9 @@ IP6TABLES=/sbin/ip6tables
 ### Change resolv.conf
 if [ $CHANGEDNS  = "Y" ]; then
 		echo "nameserver $DNS" > /etc/resolv.conf
+fi
+if [ $DNSLOCK  = "Y" ]; then
+		chattr +i /etc/resolv.conf
 fi
 
 ### flush existing rules and set chain policy setting to DROP
@@ -65,7 +70,7 @@ echo 1 > /proc/sys/net/ipv4/icmp_ignore_bogus_error_responses
 # Disable proxy_arp.
 echo 0 > /proc/sys/net/ipv4/conf/all/proxy_arp
 
-# If you are SSHing into the machine you want to FW off
+# If you are SSHing into the machine that you want to FW off to proxy only
 if [ $HOSTSSH  = "Y" ]; then
 	$IPTABLES -A INPUT -i $HOSTIF -p tcp -m tcp --dport $HOSTPORT -d $HOSTIP -m state --state NEW,ESTABLISHED  -j ACCEPT
 	$IPTABLES -A OUTPUT -p tcp --sport $HOSTPORT -s $HOSTIP -m state --state ESTABLISHED -j ACCEPT
