@@ -1,10 +1,10 @@
 #!/bin/sh
 
 ### Firewall off this host to stop any leaks when using a proxy.
-### Safely proxy all traffic with SSH's socks4 proxy: 
-### ssh -D8080 -f -C -q -B user@server-ip -p 2222 -i /media/crypt/sshkey
+### Safely proxy all traffic with SSH's socks4 proxy with something like:
+### ssh -D8080 -f -C -q -N -o "VerifyHostKeyDNS no" -p 2222 -i /media/crypt/sshkey user@192.168.100.50
 
-PROXY_SERVER_IP="server-ip"			# IP to restrict traffic to/from
+PROXY_SERVER_IP="192.168.100.50"	# IP to restrict traffic to/from
 PROXY_SERVER_PORT="2222"			# only connect to this port
 INTERFACE="eth0"					# interface of outgoing
 PROXYUSERS="root someuser"			# local user accounts who can use this proxy
